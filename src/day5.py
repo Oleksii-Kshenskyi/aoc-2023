@@ -61,17 +61,18 @@ def pass_through_pipeline(source: int, pipeline: list[list[tuple[int, int, int]]
 def seeds_to_locations(exmap: ExtractedMap) -> list[int]:
     return [pass_through_pipeline(seed, exmap.maps) for seed in exmap.seeds]
 
-def day2():
-    print("Day 2 result: KEKW")
+# REFACTOR: part 2 needs to be able to process huge ranges of seeds, not just a dozen of them. This is impossible with the current solution.
+def part2():
+    print("part 2 result: KEKW")
 
-def day1():
+def part1():
     import os
-    maps = extract_from_file("inputs/input-sample-01.txt")
-    print(f"[SAMPLE] Day 1 result: `{min(seeds_to_locations(maps))}`")
-    if os.path.exists("inputs/input-real-01.txt"):
-        real_maps = extract_from_file("inputs/input-real-01.txt")
-        print(f"[REAL] Day 1 result: `{min(seeds_to_locations(real_maps))}`")
+    maps = extract_from_file("inputs/input-sample-05.txt")
+    print(f"[SAMPLE] part 1 result: `{min(seeds_to_locations(maps))}`")
+    if os.path.exists("inputs/input-real-05.txt"):
+        real_maps = extract_from_file("inputs/input-real-05.txt")
+        print(f"[REAL] part 1 result: `{min(seeds_to_locations(real_maps))}`")
 
 if __name__ == "__main__":
-    day1()
-    day2()
+    part1()
+    part2()
