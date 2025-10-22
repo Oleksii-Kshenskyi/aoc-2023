@@ -18,6 +18,21 @@ CARD_POWERS = {
     "K": 11,
     "A": 12,
 }
+CARD_POWERS_V2 = {
+    "J": 0,
+    "2": 1,
+    "3": 2,
+    "4": 3,
+    "5": 4,
+    "6": 5,
+    "7": 6,
+    "8": 7,
+    "9": 8,
+    "T": 9,
+    "Q": 10,
+    "K": 11,
+    "A": 12,
+}
 
 def sort(l: list) -> list:
     l.sort()
@@ -46,29 +61,15 @@ def eq(condition: bool) -> int:
     if condition: return 1
     else: return -1
 
-def fhouse_rank(fhouse_hand: str) -> int:
-    powers = Counter(fhouse_hand).most_common()
-    # Sanity check that this is actually a Full House card
-    assert(len(powers) == 2)
-    return CARD_POWERS[powers[0][0]] + CARD_POWERS[powers[1][0]]
-
-def twopair_rank(twopair_hand: str) -> int:
-    powers = Counter(twopair_hand).most_common()
-    # Sanity check that this is actually a Two Pair hand
-    assert(len(powers) == 3)
-    return CARD_POWERS[powers[0][0]] + CARD_POWERS[powers[1][0]]
-
-def highcard_rank(highcard_hand: str) -> int:
-    return max(map(lambda ch: CARD_POWERS[ch], highcard_hand))
-
 @dataclass
 class Hand:
     cards: str
     bid: int
+    power_map: dict[str, int]
     
-def hands_from_file(filename: str) -> list[Hand]:
+def hands_from_file(filename: str, power_map: dict[str, int]) -> list[Hand]:
     pairs = list(map(lambda ln: ln.strip().split(), open(filename, "r").readlines()))
-    return [Hand(pair[0], int(pair[1])) for pair in pairs]
+    return [Hand(pair[0], int(pair[1]), power_map) for pair in pairs]
 
 # [FOR NOW] returns list of pairs (hand, hand type) for each hand
 def identify_hands(hands: list[Hand]) -> list[(Hand, int)]:
@@ -87,11 +88,12 @@ def identify_hands(hands: list[Hand]) -> list[(Hand, int)]:
 # Compare strength of every card starting from the first one,
 # On the first differing pair, consider the hand with the stronger card in the differing pair bigger.
 # Return 1 if a is bigger, -1 if a is smaller. No equality possible.
-def cmp_until_stronger(a: str, b: str) -> int:
-    for i in range(0, len(a)):
-        if CARD_POWERS[a[i]] > CARD_POWERS[b[i]]:
+def cmp_until_stronger(a: Hand, b: Hand) -> int:
+    assert a.power_map == b.power_map # sanity check that both hands use the same power map
+    for i in range(0, len(a.cards)):
+        if a.power_map[a.cards[i]] > a.power_map[b.cards[i]]:
             return 1
-        elif CARD_POWERS[a[i]] < CARD_POWERS[b[i]]:
+        elif a.power_map[a.cards[i]] < a.power_map[b.cards[i]]:
             return -1
     raise ValueError(f"UNREACHABLE: hands {a} and {b} completely EQUAL?")
 
@@ -102,7 +104,7 @@ def compare_hands(a: tuple[Hand, int], b: tuple[Hand, int]) -> int:
     elif a[1] > b[1]:
         return 1
     # if hand types are the same, we have to compare individual cards until one is stronger
-    return cmp_until_stronger(a[0].cards, b[0].cards)
+    return cmp_until_stronger(a[0], b[0])
 
 # Turns list of hands with determined types into sorted list of hands, strongest first, weakest last
 def sort_hands(hands: list[(Hand, int)]) -> list[Hand]:
@@ -123,22 +125,23 @@ def reduce_hands(hands: list[Hand]) -> int:
         
     return allpower
 
+def pipe(filename: str, power_map: dict[str, int]) -> int:
+    return reduce_hands(sort_hands(identify_hands(hands_from_file(filename, power_map))))
+
 def part2():
     sample_filename = f"inputs/input-sample-{DAY}.txt"
     real_filename = f"inputs/input-real-{DAY}.txt"
-    print(f"[SAMPLE] part 2 result: {sample_filename}")
+    print(f"[SAMPLE] part 2 result: {pipe(sample_filename, CARD_POWERS_V2)}")
     if path.exists(real_filename):
         print(f"[REAL] part 2 result: {real_filename}")
 
-def pipe1(filename: str) -> int:
-    return reduce_hands(sort_hands(identify_hands(hands_from_file(filename))))
 
 def part1():
     sample_filename = f"inputs/input-sample-{DAY}.txt"
     real_filename = f"inputs/input-real-{DAY}.txt"
-    print(f"[SAMPLE] part 1 result: {pipe1(sample_filename)}")
+    print(f"[SAMPLE] part 1 result: {pipe(sample_filename, CARD_POWERS)}")
     if path.exists(real_filename):
-        print(f"[REAL] part 1 result: {pipe1(real_filename)}")
+        print(f"[REAL] part 1 result: {pipe(real_filename, CARD_POWERS)}")
 
 if __name__ == "__main__":
     part1()
