@@ -61,22 +61,25 @@ def eq(condition: bool) -> int:
     if condition: return 1
     else: return -1
 
+from typing import Optional
 @dataclass
 class Hand:
     cards: str
     bid: int
     power_map: dict[str, int]
+    jokered_cards: Optional[str]
     
-def hands_from_file(filename: str, power_map: dict[str, int]) -> list[Hand]:
+def hands_from_file(filename: str, power_map: dict[str, int], injoker: bool) -> list[Hand]:
     pairs = list(map(lambda ln: ln.strip().split(), open(filename, "r").readlines()))
-    return [Hand(pair[0], int(pair[1]), power_map) for pair in pairs]
+    return [Hand(pair[0], int(pair[1]), power_map, inject_jokers(pair[0]) if injoker else None) for pair in pairs]
 
-# [FOR NOW] returns list of pairs (hand, hand type) for each hand
+# Returns list of pairs (hand, hand type) for each hand
 def identify_hands(hands: list[Hand]) -> list[(Hand, int)]:
     ranks = []
     for hand in hands:
+        used_hand = hand.jokered_cards if hand.jokered_cards else hand.cards
         for (hand_type, hand_check) in HAND_POWERS.items():
-            if hand_check(hand.cards):
+            if hand_check(used_hand):
                 ranks += [(hand, hand_type)]
                 break
     return ranks
@@ -125,23 +128,35 @@ def reduce_hands(hands: list[Hand]) -> int:
         
     return allpower
 
-def pipe(filename: str, power_map: dict[str, int]) -> int:
-    return reduce_hands(sort_hands(identify_hands(hands_from_file(filename, power_map))))
+# Returns same hand, but injects the jokers into it according to the Joker rules of pt. 2
+def inject_jokers(old_hand: str) -> str:
+    import copy; new_hand = copy.deepcopy(old_hand)
+    c = Counter(new_hand)
+    if "J" in c and c["J"] == len(old_hand): return old_hand
+
+    if "J" in c:
+        noj = new_hand.replace("J", "")
+        turn_to = Counter(noj).most_common()[0][0]
+        new_hand = new_hand.replace("J", turn_to)
+    return new_hand
+
+def pipe(filename: str, power_map: dict[str, int], injoker: bool) -> int:
+    return reduce_hands(sort_hands(identify_hands(hands_from_file(filename, power_map, injoker))))
 
 def part2():
     sample_filename = f"inputs/input-sample-{DAY}.txt"
     real_filename = f"inputs/input-real-{DAY}.txt"
-    print(f"[SAMPLE] part 2 result: {pipe(sample_filename, CARD_POWERS_V2)}")
+    print(f"[SAMPLE] part 2 result: {pipe(sample_filename, CARD_POWERS_V2, True)}")
     if path.exists(real_filename):
-        print(f"[REAL] part 2 result: {real_filename}")
+        print(f"[REAL] part 2 result: {pipe(real_filename, CARD_POWERS_V2, True)}")
 
 
 def part1():
     sample_filename = f"inputs/input-sample-{DAY}.txt"
     real_filename = f"inputs/input-real-{DAY}.txt"
-    print(f"[SAMPLE] part 1 result: {pipe(sample_filename, CARD_POWERS)}")
+    print(f"[SAMPLE] part 1 result: {pipe(sample_filename, CARD_POWERS, False)}")
     if path.exists(real_filename):
-        print(f"[REAL] part 1 result: {pipe(real_filename, CARD_POWERS)}")
+        print(f"[REAL] part 1 result: {pipe(real_filename, CARD_POWERS, False)}")
 
 if __name__ == "__main__":
     part1()
